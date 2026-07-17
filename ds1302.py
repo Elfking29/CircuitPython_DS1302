@@ -81,6 +81,11 @@ class DS1302:
     def datetime(self) -> struct_time:
         """
         Get or set the current date and time as a :class:`time.struct_time`.
+
+        Reading this property returns the current date and time.
+
+        Assign a :class:`time.struct_time` to update the RTC date and time.
+        :raises TypeError: If the assigned value is not a :class:`time.struct_time`.
         """
 
         data = [0, 0, 0, 0, 0, 0, 0]
@@ -202,7 +207,10 @@ class DS1302:
         """
         Get or set the trickle charger diode configuration.
 
-        Valid values are :data:`TRICKLE_DIODE_1` and :data:`TRICKLE_DIODE_2`.
+        Valid values are:
+
+        * :data:`TRICKLE_DIODE_1`
+        * :data:`TRICKLE_DIODE_2`
         """
         return self.__read_reg(0x91) & (0x08 | 0x04)
 
@@ -220,9 +228,11 @@ class DS1302:
         """
         Get or set the trickle charger resistor configuration.
 
-        Valid values are :data:`TRICKLE_RESISTOR_2` (2kΩ),
-        :data:`TRICKLE_RESISTOR_4` (4kΩ), and
-        :data:`TRICKLE_RESISTOR_8` (8kΩ).
+        Valid values are:
+
+        * :data:`TRICKLE_RESISTOR_2` (2kΩ)
+        * :data:`TRICKLE_RESISTOR_4` (4kΩ)
+        * :data:`TRICKLE_RESISTOR_8` (8kΩ)
         """
         return self.__read_reg(0x91) & (0x02 | 0x01)
 
@@ -239,16 +249,49 @@ class DS1302:
 
     @staticmethod
     def bcdtodec(num: int) -> int:
+        """
+        Convert a Binary-Coded Decimal (BCD) value to decimal.
+
+        :param num: A number encoded in Binary-Coded Decimal (BCD).
+        :type num: int
+        :return: The decimal representation of ``num``.
+        :rtype: int
+        """
+
         return ((num >> 4) * 10) + (num & 0x0F)
 
     @staticmethod
     def dectobcd(num: int) -> int:
+        """
+        Convert a decimal value to Binary-Coded Decimal (BCD).
+
+        :param num: A decimal number.
+        :type num: int
+        :return: The Binary-Coded Decimal (BCD) representation of ``num``.
+        :rtype: int
+        """
+
         return ((num // 10) << 4) | (num % 10)
 
     @staticmethod
-    def clamp(v: int, a: int, b: int) -> int:
+    def clamp(num: int | float, a: int | float, b: int | float) -> int | float:
+        """
+        Clamp ``num`` between ``a`` and ``b``.
+
+        :param num: The number to clamp.
+        :type num: int or float
+        :param a: One bound of the valid range.
+        :type a: int or float
+        :param b: The other bound of the valid range.
+        :type b: int or float
+        :return: ``num`` constrained to the range defined by ``a`` and ``b``.
+        :rtype: int or float
+
+        ``a`` and ``b`` may be provided in either order.
+        """
+
         n, x = (a, b) if a < b else (b, a)
-        return max(n, min(x, v))
+        return max(n, min(x, num))
 
     def __rwset(self, rw: bool) -> None:
         if not rw:  # Read
@@ -305,11 +348,30 @@ class DS1302:
         self.__setwp(True)
 
     def clear_ram(self) -> None:
+        """
+        Clear all user-accessible RAM by writing zeros to each byte.
+        """
+
         self.write_ram(0, bytes(31))
 
     def read_ram(self, offset: int, length: int = 1) -> bytearray:
+        """
+        Read a block of user-accessible RAM.
+
+        :param offset: The starting RAM address (0-30) to read.
+        :type offset: int
+        :param length: The number of bytes to read (1-31).
+        :type length: int
+        :return: The data read from RAM.
+        :rtype: bytearray
+        :raises ValueError: If ``offset`` or ``length`` is out of range.
+        :raises IndexError: If the read would extend beyond the end of RAM.
+        """
+
         if not 0 <= offset <= 30:
             raise ValueError("Starting offset must be between 0 and 30, inclusive.")
+        if not 1 <= length <= 31:
+            raise ValueError("Length must be between 1 and 31, inclusive")
         if offset + length > 31:
             raise IndexError(f"Read range {offset + length} exceeds RAM boundary")
         if offset == 0:
@@ -325,11 +387,33 @@ class DS1302:
         return self.__buffer[:length]
 
     def read_ram_single(self, offset: int) -> int:
+        """
+        Read a single byte of user-accessible RAM.
+
+        :param offset: The RAM address (0-30) to read.
+        :type offset: int
+        :return: The value stored at ``offset``.
+        :rtype: int
+        :raises ValueError: If ``offset`` is out of range.
+        """
+
         if not 0 <= offset <= 30:
             raise ValueError("Offset must be between 0 and 30, inclusive.")
         return self.__read_reg(0xC1 + offset * 2)
 
     def write_ram(self, offset: int, data: ReadableBuffer) -> None:
+        """
+        Write a block of user-accessible RAM.
+
+        :param offset: The starting RAM address (0-30) to write to.
+        :type offset: int
+        :param data: The byte data to write to RAM.
+        :type data: ReadableBuffer
+        :raises ValueError: If ``offset`` is out of range or
+            any value in ``data`` is not between 0 and 255.
+        :raises IndexError: If the write would extend beyond the end of RAM.
+        """
+
         if len(data) == 0:
             return
         if not 0 <= offset <= 30:
@@ -351,6 +435,16 @@ class DS1302:
         self.__setwp(True)
 
     def write_ram_single(self, offset: int, data: int) -> None:
+        """
+        Write a single byte of user-accessible RAM.
+
+        :param offset: The RAM address (0-30) to write to.
+        :type offset: int
+        :param data: The byte value (0-255) to write to RAM.
+        :type data: int
+        :raises ValueError: If ``offset`` is out of range or ``data`` is not between 0 and 255.
+        """
+
         if not 0 <= offset <= 30:
             raise ValueError("Offset must be between 0 and 30, inclusive.")
         if not 0x00 <= data <= 0xFF:
