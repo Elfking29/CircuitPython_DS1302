@@ -85,6 +85,7 @@ class DS1302:
         Reading this property returns the current date and time.
 
         Assign a :class:`time.struct_time` to update the RTC date and time.
+
         :raises TypeError: If the assigned value is not a :class:`time.struct_time`.
         """
 
