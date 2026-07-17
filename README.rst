@@ -136,7 +136,7 @@ attribute and access the standard attributes of a struct_time such as ``tm_year`
     t = rtc.datetime
     print(t)
     print(t.tm_hour, t.tm_min)
-    
+
 
 Documentation
 =============
