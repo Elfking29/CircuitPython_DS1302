@@ -30,6 +30,7 @@ Table of Contents
 .. toctree::
     :caption: Other Links
 
+    DS1302 Datasheet <https://www.analog.com/media/en/technical-documentation/data-sheets/ds1302.pdf>
     Download from GitHub <https://github.com/Elfking29/CircuitPython_DS1302/releases/latest>
     Download Library Bundle <https://circuitpython.org/libraries>
     CircuitPython Reference Documentation <https://docs.circuitpython.org>
