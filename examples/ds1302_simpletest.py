@@ -9,23 +9,23 @@ import board
 
 import ds1302
 
-# Set up three pins
-reset_pin = board.GP13
+# Set up the three interface pins
+ce_pin = board.GP13
 io_pin = board.GP14
-clock_pin = board.GP15
+ck_pin = board.GP15
 
 # Instantiate the RTC
-rtc = ds1302.DS1302(reset_pin, io_pin, clock_pin)
+rtc = ds1302.DS1302(ce_pin, io_pin, ck_pin)
 
 # Lookup table for names of days (nicer printing).
 days = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 
-if False:  # change to True if you want to set the time!
-    #                     year, mon, date, hour, min, sec, wday, yday, isdst
+if True:  # Change to True to set the clock
+    # year, mon, date, hour, min, sec, wday, yday, isdst
     t = time.struct_time((2026, 7, 16, 12, 38, 0, 3, -1, -1))
-    # you must set year, mon, date, hour, min, sec and weekday
-    # isdst can be set but we don't do anything with it at this time
-    # setting yearday doesn't do anything, but getting it will calculate it from the date
+    # you must set all values
+    # setting tm_yday has no effect; it is calculated from the date when reading
+    # setting tm_isdst has no effect; it will always return -1
     print("Setting time to:", t)  # uncomment for debugging
     rtc.datetime = t
     print()
