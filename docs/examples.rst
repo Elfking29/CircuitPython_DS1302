@@ -7,14 +7,17 @@ Ensure your device works with this simple test.
     :caption: examples/ds1302_simpletest.py
     :linenos:
 
-RAM Example
+Other tests
 -----------
+
+RAM Example
+===========
 
 .. literalinclude:: ../examples/ds1302_ram.py
     :language: python
 
 Trickle Charger Example
------------------------
+=======================
 
 .. literalinclude:: ../examples/ds1302_trickle.py
     :language: python
