@@ -1,4 +1,4 @@
-Introduction
+Introduction to the DS1302 Real Time Clock (RTC) Library
 ============
 
 
@@ -22,7 +22,9 @@ Introduction
     :target: https://github.com/astral-sh/ruff
     :alt: Code Style: Ruff
 
-CircuitPython driver for the Maxim Integrated / Analog Devices DS1302 Real Time Clock.
+The DS1302 is a small battery-backed real time clock (RTC) that allows your microcontroller project to keep track of time even if it is reprogrammed, or if the power is lost. This is perfect for clocks, datalogging, timers, etc. The DS1302 also features a trickle charger for the battery so you never need to change batteries.
+
+The DS1302 is simple and inexpensive but not a high precision device. It may lose or gain up to two seconds a day. In addition, it communicates over a custom serial protocol. For a high-precision, temperature compensated, alternative, please check out the `DS3231 precision RTC <https://www.adafruit.com/products/5188>`_, which communicates over I2C.
 
 
 Dependencies
@@ -93,8 +95,48 @@ Or the following command to update an existing version:
 Usage Example
 =============
 
-.. todo:: Add a quick, simple example. It and other examples should live in the
-examples folder and be included in docs/examples.rst.
+Basics
+------
+
+Of course, you must import the library to use it:
+
+.. code:: python3
+
+    import time
+    import board
+    import ds1302
+
+The DS1302 requires three pins: Reset, I/O, and Clock. These can be any 3 pins as long as they support digital output (and in the case of I/O, digital input):
+
+.. code:: python3
+
+    import board
+    reset_pin = board.GP13
+    io_pin = board.GP14
+    clock_pin = board.GP15
+
+Now, you can use these pins to instantiate the RTC object:
+
+.. code:: python3
+
+    rtc = ds1302.DS1302(reset_pin, io_pin, clock_pin)
+
+To set the time, you need to set ``datetime`` to a `time.struct_time` object:
+
+.. code:: python
+
+    rtc.datetime = time.struct_time((2026,7,16,23,38,0,3,194,-1))
+
+After the RTC is set, you retrieve the time by reading the `datetime`
+attribute and access the standard attributes of a struct_time such as ``tm_year``,
+``tm_hour`` and ``tm_min``.
+
+.. code:: python3
+
+    t = rtc.datetime
+    print(t)
+    print(t.tm_hour, t.tm_min)
+    
 
 Documentation
 =============
