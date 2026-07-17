@@ -50,6 +50,7 @@ TRICKLE_RESISTOR_8 = const(0x03)
 try:
     import typing
 
+    from circuitpython_typing import ReadableBuffer
     from microcontroller import Pin
 except ImportError:
     pass
@@ -58,7 +59,7 @@ except ImportError:
 class DS1302:
     """Interfaces with the DS1302 real-time clock"""
 
-    def __init__(self, ce_pin: Pin, io_pin: Pin, ck_pin: Pin) -> None:
+    def __init__(self, ce_pin: "Pin", io_pin: "Pin", ck_pin: "Pin") -> None:
         """
         Create a DS1302 RTC.
 
@@ -449,7 +450,7 @@ class DS1302:
             raise ValueError("Offset must be between 0 and 30, inclusive.")
         return self.__read_reg(0xC1 + offset * 2)
 
-    def write_ram(self, offset: int, data: ReadableBuffer) -> None:
+    def write_ram(self, offset: int, data: "ReadableBuffer") -> None:
         """
         Write a block of user-accessible RAM.
 
