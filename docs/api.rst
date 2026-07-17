@@ -9,3 +9,5 @@ API Reference
 
 .. automodule:: ds1302
     :members:
+    :undoc-members:
+    :show-inheritance:
