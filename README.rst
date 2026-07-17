@@ -1,5 +1,5 @@
 Introduction to the DS1302 Real Time Clock (RTC) Library
-============
+========================================================
 
 
 .. image:: https://readthedocs.org/projects/circuitpython-ds1302/badge/?version=latest
