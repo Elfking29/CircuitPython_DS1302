@@ -16,6 +16,8 @@ Implementation Notes
 
 **Hardware:**
 
+* Maxim Integrated / Analog Devices DS1302 Real Time Clock
+
 **Software and Dependencies:**
 
 * Adafruit CircuitPython firmware for the supported boards:
@@ -54,24 +56,63 @@ except ImportError:
 
 
 class DS1302:
-    """DS1302 real-time clock"""
+    """Interfaces with the DS1302 real-time clock"""
 
     def __init__(self, ce_pin: Pin, io_pin: Pin, ck_pin: Pin) -> None:
         """
-        Create a DS1302 RTC
+        Create a DS1302 RTC.
 
-        :param microcontroller.Pin ce_pin: Chip Enable Pin
-        :param microcontroller.Pin io_pin: I/O Pin
-        :param microcontroller.Pin ck_pin: Clock Pin
+        :param microcontroller.Pin ce_pin: Chip Enable pin.
+        :param microcontroller.Pin io_pin: I/O pin.
+        :param microcontroller.Pin ck_pin: Clock pin.
+
+        **Quickstart: Importing and using the device**
+
+        Here is an example of using the :class:`DS1302` class.
+
+        First, import the required libraries:
+
+        .. code-block:: python
+
+            import time
+            import board
+            import ds1302
+
+        Next, define your Chip Enable, I/O, and Clock pins:
+
+        .. code-block:: python
+
+            ce_pin = board.GP13
+            io_pin = board.GP14
+            ck_pin = board.GP15
+
+        Instantiate the RTC:
+
+        .. code-block:: python
+
+            rtc = ds1302.DS1302(ce_pin, io_pin, ck_pin)
+
+        Set the current date and time:
+
+        .. code-block:: python
+
+            t = time.struct_time((2026, 7, 16, 12, 38, 0, 3, -1, -1))
+            rtc.datetime = t
+
+        Read the current date and time from the :attr:`datetime` property:
+
+        .. code-block:: python
+
+            current_time = rtc.datetime
         """
 
-        self.__rs = digitalio.DigitalInOut(ce_pin)
+        self.__ce = digitalio.DigitalInOut(ce_pin)
         self.__io = digitalio.DigitalInOut(io_pin)
         self.__ck = digitalio.DigitalInOut(ck_pin)
-        self.__rs.direction = digitalio.Direction.OUTPUT
+        self.__ce.direction = digitalio.Direction.OUTPUT
         self.__io.direction = digitalio.Direction.OUTPUT
         self.__ck.direction = digitalio.Direction.OUTPUT
-        self.__rs.value = 0
+        self.__ce.value = 0
         self.__io.value = 0
         self.__ck.value = 0
         self.__buffer = bytearray(31)
@@ -84,6 +125,9 @@ class DS1302:
 
         Reading this property returns the current date and time.
 
+        The ``tm_yday`` field of an assigned :class:`time.struct_time` is ignored.
+        When reading ``datetime``, ``tm_yday`` is calculated from the stored date.
+
         Assign a :class:`time.struct_time` to update the RTC date and time.
 
         :raises TypeError: If the assigned value is not a :class:`time.struct_time`.
@@ -93,15 +137,18 @@ class DS1302:
         data[0] = self.__read(0xBF)
         for i in range(6):
             data[i + 1] = self.__read(0)
-        self.__rs.value = 0
+        self.__ce.value = 0
         second = self.bcdtodec(data[0] & ~(0x80))
         minute = self.bcdtodec(data[1] & ~(0x80))
-        raw_hour = self.bcdtodec(data[2] & ~(0x80 | 0x40 | 0x20))
-        pm = bool(data[2] & 0x20)
-        if raw_hour == 12:
-            hour = 12 if pm else 0
+        if self.is_12_hour:
+            raw_hour = self.bcdtodec(data[2] & (0x01 | 0x02 | 0x04 | 0x08 | 0x10))
+            pm = bool(data[2] & 0x20)
+            if raw_hour == 12:
+                hour = 12 if pm else 0
+            else:
+                hour = raw_hour + (12 if pm else 0)
         else:
-            hour = raw_hour + (12 if pm else 0)
+            hour = self.bcdtodec(data[2] & (0x01 | 0x02 | 0x04 | 0x08 | 0x10 | 0x20))
         date = self.bcdtodec(data[3] & ~(0x80 | 0x40))
         month = self.bcdtodec(data[4] & ~(0x80 | 0x40 | 0x20))
         weekday = self.bcdtodec(data[5] & ~(0x80 | 0x40 | 0x20 | 0x10 | 0x08)) - 1
@@ -119,7 +166,7 @@ class DS1302:
         data = [0, 0, 0, 0, 0, 0, 0]
         data[0] = (self.__read_reg(0x81) & 0x80) | (self.dectobcd(self.clamp(t.tm_sec, 0, 59)))
         data[1] = self.dectobcd(self.clamp(t.tm_min, 0, 59))
-        if self.__read_reg(0x85) & 0x08:
+        if self.is_12_hour:
             th = self.clamp(t.tm_hour, 0, 23) % 12
             th = th if th != 0 else 12
             data[2] = self.dectobcd(th) | 0x80
@@ -244,8 +291,8 @@ class DS1302:
         else:
             raise ValueError(
                 f"Invalid resistor value {resistor}. "
-                f"Expected TRICKLE_RESISTOR_2, "
-                f"TRICKLE_RESISTOR_4, or TRICKLE_RESISTOR_8."
+                "Expected TRICKLE_RESISTOR_2, "
+                "TRICKLE_RESISTOR_4, or TRICKLE_RESISTOR_8."
             )
 
     @staticmethod
@@ -301,14 +348,14 @@ class DS1302:
             self.__io.direction = digitalio.Direction.OUTPUT
 
     def __setwp(self, wp: bool) -> None:
-        self.__rs.value = 0
+        self.__ce.value = 0
         self.__write(0x8E, 0x00 if not wp else 0x80)
-        self.__rs.value = 0
+        self.__ce.value = 0
 
     def __write(self, addr: int, val: int) -> None:
         if addr != 0:  # addr=0 cannot be the first read() call in a chain
             self.__rwset(True)
-            self.__rs.value = 1
+            self.__ce.value = 1
             for _ in range(8):
                 self.__io.value = addr & 1
                 self.__ck.value = 1
@@ -323,7 +370,7 @@ class DS1302:
     def __read(self, addr: int) -> int:
         if addr != 0:  # addr=0 cannot be the first read() call in a chain
             self.__rwset(True)
-            self.__rs.value = 1
+            self.__ce.value = 1
             for _ in range(8):
                 self.__io.value = addr & 1
                 self.__ck.value = 1
@@ -340,7 +387,7 @@ class DS1302:
 
     def __read_reg(self, addr: int) -> int:
         data = self.__read(addr)
-        self.__rs.value = 0
+        self.__ce.value = 0
         return data
 
     def __write_reg(self, addr: int, val: int) -> None:
@@ -384,7 +431,7 @@ class DS1302:
                 self.__read(0)
             else:
                 self.__buffer[i - offset] = self.__read(0)
-        self.__rs.value = 0
+        self.__ce.value = 0
         return self.__buffer[:length]
 
     def read_ram_single(self, offset: int) -> int:
@@ -429,7 +476,7 @@ class DS1302:
             self.__write(0xFE, data[0])
             for i in range(1, len(data)):
                 self.__write(0, data[i])
-            self.__rs.value = 0
+            self.__ce.value = 0
         else:
             for i in range(len(data)):
                 self.__write(0xC0 + 2 * (offset + i), data[i])

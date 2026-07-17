@@ -121,7 +121,7 @@ To set the time, you need to set ``datetime`` to a `time.struct_time` object:
 
 .. code:: python
 
-    rtc.datetime = time.struct_time((2026,7,16,23,38,0,3,194,-1))
+    rtc.datetime = time.struct_time((2026, 7, 16, 12, 38, 0, 3, -1, -1))
 
 After the RTC is set, you retrieve the time by reading the `datetime`
 attribute and access the standard attributes of a struct_time such as ``tm_year``,
