@@ -34,11 +34,17 @@ import board
 import digitalio
 from micropython import const
 
-_DIODE_1 = const(0x04)
-_DIODE_2 = const(0x08)
-_RESISTOR_2 = const(0x01)
-_RESISTOR_4 = const(0x02)
-_RESISTOR_8 = const(0x03)
+TRICKLE_DIODE_1 = const(0x04)
+"""One diode drop in the trickle charger path."""
+TRICKLE_DIODE_2 = const(0x08)
+"""Two diode drops in the trickle charger path."""
+TRICKLE_RESISTOR_2 = const(0x01)
+"""2kΩ trickle charger resistor."""
+TRICKLE_RESISTOR_4 = const(0x02)
+"""4kΩ trickle charger resistor."""
+TRICKLE_RESISTOR_8 = const(0x03)
+"""8kΩ trickle charger resistor."""
+
 try:
     import typing
 
@@ -74,10 +80,7 @@ class DS1302:
     @property
     def datetime(self) -> struct_time:
         """
-        Current date and time from the RTC as a :class:`time.struct_time`.
-
-        :return: Current date and time.
-        :rtype: time.struct_time
+        Get or set the current date and time as a :class:`time.struct_time`.
         """
 
         data = [0, 0, 0, 0, 0, 0, 0]
@@ -105,12 +108,6 @@ class DS1302:
 
     @datetime.setter
     def datetime(self, t: struct_time) -> None:
-        """
-        Set the current date and time.
-
-        :param time.struct_time value: New date and time.
-        """
-
         if not isinstance(t, struct_time):
             raise TypeError(f"Expected struct_time, got {type(t).__name__}.")
         data = [0, 0, 0, 0, 0, 0, 0]
@@ -138,6 +135,12 @@ class DS1302:
 
     @property
     def clock_enable(self) -> bool:
+        """
+        Get or set whether the RTC clock is enabled as a ``bool``.
+
+        When disabled, the oscillator is stopped and the DS1302 enters a low-power
+        standby mode with a current draw of less than 100nA.
+        """
         return not bool(self.__read_reg(0x81) & 0x80)
 
     @clock_enable.setter
@@ -147,6 +150,11 @@ class DS1302:
 
     @property
     def is_12_hour(self) -> bool:
+        """
+        Whether the RTC uses 12-hour or 24-hour mode internally as a ``bool``.
+
+        This does not affect :attr:`datetime`, which always uses 24-hour time.
+        """
         return bool(self.__read_reg(0x85) & 0x80)
 
     @is_12_hour.setter
@@ -170,6 +178,12 @@ class DS1302:
 
     @property
     def trickle_enable(self) -> bool:
+        """
+        Get or set whether the trickle charger is enabled as a ``bool``.
+
+        The trickle charger is only active when both :attr:`trickle_diode` and
+        :attr:`trickle_resistor` are configured.
+        """
         return self.__read_reg(0x91) & (0x80 | 0x40 | 0x20 | 0x10) == (0x80 | 0x20)
 
     @trickle_enable.setter
@@ -185,26 +199,42 @@ class DS1302:
 
     @property
     def trickle_diode(self) -> int:
+        """
+        Get or set the trickle charger diode configuration.
+
+        Valid values are :data:`TRICKLE_DIODE_1` and :data:`TRICKLE_DIODE_2`.
+        """
         return self.__read_reg(0x91) & (0x08 | 0x04)
 
     @trickle_diode.setter
     def trickle_diode(self, diode: int) -> None:
-        if diode in {_DIODE_1, _DIODE_2}:
+        if diode in {TRICKLE_DIODE_1, TRICKLE_DIODE_2}:
             self.__write_reg(0x90, self.__read_reg(0x91) & ~(0x04 | 0x08) | (diode))
         else:
-            raise ValueError(f"Diode value {diode} is not {_DIODE_1} or {_DIODE_2}.")
+            raise ValueError(
+                f"Invalid diode value {diode}. Expected TRICKLE_DIODE_1 or TRICKLE_DIODE_2."
+            )
 
     @property
     def trickle_resistor(self) -> int:
+        """
+        Get or set the trickle charger resistor configuration.
+
+        Valid values are :data:`TRICKLE_RESISTOR_2` (2kΩ),
+        :data:`TRICKLE_RESISTOR_4` (4kΩ), and
+        :data:`TRICKLE_RESISTOR_8` (8kΩ).
+        """
         return self.__read_reg(0x91) & (0x02 | 0x01)
 
     @trickle_resistor.setter
     def trickle_resistor(self, resistor: int) -> None:
-        if resistor in {_RESISTOR_2, _RESISTOR_4, _RESISTOR_8}:
+        if resistor in {TRICKLE_RESISTOR_2, TRICKLE_RESISTOR_4, TRICKLE_RESISTOR_8}:
             self.__write_reg(0x90, self.__read_reg(0x91) & ~(0x01 | 0x02) | (resistor))
         else:
             raise ValueError(
-                f"Resistor value {resistor} is not {_RESISTOR_2}, {_RESISTOR_4}, or {_RESISTOR_8}."
+                f"Invalid resistor value {resistor}. "
+                f"Expected TRICKLE_RESISTOR_2, "
+                f"TRICKLE_RESISTOR_4, or TRICKLE_RESISTOR_8."
             )
 
     @staticmethod
