@@ -13,7 +13,7 @@ requires = [
 [project]
 name = "circuitpython-ds1302"
 description = "CircuitPython driver for the Maxim Integrated / Analog Devices DS1302 Real Time Clock."
-version = "0.0.0+auto.0"
+version = "1.0.0"
 readme = "README.rst"
 authors = [
     {name = "Avery Ramsey", email = "averycoleramsey@gmail.com"}
