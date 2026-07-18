@@ -33,6 +33,7 @@ __pycache__
 _build
 
 # This file results from running `pip -e install .` in a local repository
+dist/
 *.egg-info
 
 # Virtual environment-specific files
